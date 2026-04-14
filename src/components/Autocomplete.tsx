@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Person } from '../types/Person';
 
 type Props = {
   people: Person[];
-  delay: number;
+  delay?: number;
   onSelected: (person: Person | null) => void;
 };
 
@@ -24,7 +24,7 @@ function debounce<T extends (...args: never[]) => void>(
 
 export const Autocomplete: React.FC<Props> = ({
   people,
-  delay,
+  delay = 300,
   onSelected,
 }) => {
   const [inputValue, setInputValue] = useState('');
@@ -42,36 +42,13 @@ export const Autocomplete: React.FC<Props> = ({
     onSelected(null);
   };
 
+  const trim = appliedQuery.trim().toLocaleLowerCase();
+
   const filterPeople = useMemo(() => {
     return people.filter(person => {
-      return person.name
-        .trim()
-        .toLocaleLowerCase()
-        .includes(appliedQuery.toLocaleLowerCase());
+      return person.name.trim().toLocaleLowerCase().includes(trim);
     });
-  }, [appliedQuery, people]);
-
-  const menuRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(event.target as Node) &&
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node)
-      ) {
-        setIsOpenMenu(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
+  }, [trim, people]);
 
   return (
     <>
@@ -83,18 +60,15 @@ export const Autocomplete: React.FC<Props> = ({
             className="input"
             value={inputValue}
             onFocus={() => setIsOpenMenu(true)}
-            ref={inputRef}
             data-cy="search-input"
             onChange={handleQueryChange}
+            onBlur={() => {
+              setIsOpenMenu(false);
+            }}
           />
         </div>
         {isOpenMenu && (
-          <div
-            ref={menuRef}
-            className="dropdown-menu"
-            role="menu"
-            data-cy="suggestions-list"
-          >
+          <div className="dropdown-menu" role="menu" data-cy="suggestions-list">
             {filterPeople.length !== 0 && (
               <div className="dropdown-content">
                 {filterPeople.map(person => {
@@ -103,7 +77,7 @@ export const Autocomplete: React.FC<Props> = ({
                       className="dropdown-item is-clickable"
                       data-cy="suggestion-item"
                       key={person.slug}
-                      onClick={() => {
+                      onMouseDown={() => {
                         onSelected(person);
                         setInputValue(person.name);
                         setIsOpenMenu(false);
@@ -118,7 +92,7 @@ export const Autocomplete: React.FC<Props> = ({
           </div>
         )}
       </div>
-      {filterPeople.length === 0 && (
+      {isOpenMenu && filterPeople.length === 0 && (
         <div
           className="
             notification
