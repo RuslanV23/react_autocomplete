@@ -31,24 +31,30 @@ export const Autocomplete: React.FC<Props> = ({
   const [isOpenMenu, setIsOpenMenu] = useState(false);
   const [appliedQuery, setAppliedQuery] = useState('');
 
-  const applyQuery = useMemo(
-    () => debounce(setAppliedQuery, delay),
-    [setAppliedQuery, delay],
-  );
+  const trimAppliedQuery = appliedQuery.trim().toLocaleLowerCase();
 
-  const handleQueryChange = (event: React.FocusEvent<HTMLInputElement>) => {
-    setInputValue(event.target.value);
-    applyQuery(event.target.value);
+  const applyQuery = useMemo(() => debounce(setAppliedQuery, delay), [delay]);
+
+  const handleQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = event.target.value;
+    const normalizedNewValue = newValue.trim().toLowerCase();
+
+    setInputValue(newValue);
     onSelected(null);
+
+    if (normalizedNewValue === trimAppliedQuery) {
+      return;
+    }
+
+    applyQuery(newValue);
   };
 
-  const trim = appliedQuery.trim().toLocaleLowerCase();
-
   const filterPeople = useMemo(() => {
+
     return people.filter(person => {
-      return person.name.trim().toLocaleLowerCase().includes(trim);
+      return person.name.trim().toLocaleLowerCase().includes(trimAppliedQuery);
     });
-  }, [trim, people]);
+  }, [trimAppliedQuery, people]);
 
   return (
     <>
